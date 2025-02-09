@@ -1,0 +1,18 @@
+-- ccache will be used for faster recompilation
+-- git describe returned 'fatal: bad revision 'HEAD''
+-- Could not use 'git describe' to determine PROJECT_VER.
+-- Building ESP-IDF components for target esp32s3
+NOTICE: Dependencies lock doesn't exist, solving dependencies.
+NOTICE: Skipping optional dependency: espressif/esp_hosted
+NOTICE: Skipping optional dependency: espressif/esp_wifi_remote
+..................NOTICE: Skipping optional dependency: espressif/esp_hosted
+..................NOTICE: Skipping optional dependency: espressif/esp_wifi_remote
+.....................................................................................................................................................................................................................................................................................................................................NOTICE: Skipping optional dependency: espressif/esp_hosted
+NOTICE: Skipping optional dependency: espressif/esp_wifi_remote
+.......NOTICE: Skipping optional dependency: espressif/esp_hosted
+.......NOTICE: Skipping optional dependency: espressif/esp_wifi_remote
+..NOTICE: Skipping optional dependency: espressif/esp_hosted
+NOTICE: Skipping optional dependency: espressif/esp_wifi_remote
+.......NOTICE: Skipping optional dependency: espressif/esp_hosted
+.......NOTICE: Skipping optional dependency: espressif/esp_wifi_remote
+...-- Configuring incomplete, errors occurred!
