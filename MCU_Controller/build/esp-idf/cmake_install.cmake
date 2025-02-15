@@ -1,4 +1,4 @@
-# Install script for directory: C:/Users/grego/esp/v5.4/esp-idf
+# Install script for directory: C:/Users/grego/esp/v5.3.2/esp-idf
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -34,7 +34,7 @@ endif()
 
 # Set path to fallback-tool for dependency-resolution.
 if(NOT DEFINED CMAKE_OBJDUMP)
-  set(CMAKE_OBJDUMP "C:/Users/grego/.espressif/tools/xtensa-esp-elf/esp-14.2.0_20241119/xtensa-esp-elf/bin/xtensa-esp32s3-elf-objdump.exe")
+  set(CMAKE_OBJDUMP "C:/Users/grego/.espressif/tools/xtensa-esp-elf/esp-13.2.0_20240530/xtensa-esp-elf/bin/xtensa-esp32s3-elf-objdump.exe")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
@@ -145,11 +145,6 @@ endif()
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
   include("C:/Users/grego/Documents/GitHub/CdFdR-2025-Software/MCU_Controller/build/esp-idf/soc/cmake_install.cmake")
-endif()
-
-if(NOT CMAKE_INSTALL_LOCAL_ONLY)
-  # Include the install script for the subdirectory.
-  include("C:/Users/grego/Documents/GitHub/CdFdR-2025-Software/MCU_Controller/build/esp-idf/esp_security/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
@@ -524,11 +519,6 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("C:/Users/grego/Documents/GitHub/CdFdR-2025-Software/MCU_Controller/build/esp-idf/rt/cmake_install.cmake")
-endif()
-
-if(NOT CMAKE_INSTALL_LOCAL_ONLY)
-  # Include the install script for the subdirectory.
   include("C:/Users/grego/Documents/GitHub/CdFdR-2025-Software/MCU_Controller/build/esp-idf/spiffs/cmake_install.cmake")
 endif()
 
@@ -554,6 +544,141 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
+  include("C:/Users/grego/Documents/GitHub/CdFdR-2025-Software/MCU_Controller/build/esp-idf/chmorgan__esp-libhelix-mp3/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("C:/Users/grego/Documents/GitHub/CdFdR-2025-Software/MCU_Controller/build/esp-idf/espressif__esp-modbus/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("C:/Users/grego/Documents/GitHub/CdFdR-2025-Software/MCU_Controller/build/esp-idf/espressif__esp-zboss-lib/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("C:/Users/grego/Documents/GitHub/CdFdR-2025-Software/MCU_Controller/build/esp-idf/espressif__esp-zigbee-lib/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("C:/Users/grego/Documents/GitHub/CdFdR-2025-Software/MCU_Controller/build/esp-idf/espressif__libsodium/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("C:/Users/grego/Documents/GitHub/CdFdR-2025-Software/MCU_Controller/build/esp-idf/espressif__mdns/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("C:/Users/grego/Documents/GitHub/CdFdR-2025-Software/MCU_Controller/build/esp-idf/espressif__cbor/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("C:/Users/grego/Documents/GitHub/CdFdR-2025-Software/MCU_Controller/build/esp-idf/espressif__esp-dsp/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("C:/Users/grego/Documents/GitHub/CdFdR-2025-Software/MCU_Controller/build/esp-idf/espressif__esp-sr/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("C:/Users/grego/Documents/GitHub/CdFdR-2025-Software/MCU_Controller/build/esp-idf/espressif__esp_diag_data_store/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("C:/Users/grego/Documents/GitHub/CdFdR-2025-Software/MCU_Controller/build/esp-idf/espressif__rmaker_common/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("C:/Users/grego/Documents/GitHub/CdFdR-2025-Software/MCU_Controller/build/esp-idf/espressif__esp_diagnostics/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("C:/Users/grego/Documents/GitHub/CdFdR-2025-Software/MCU_Controller/build/esp-idf/espressif__esp_insights/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("C:/Users/grego/Documents/GitHub/CdFdR-2025-Software/MCU_Controller/build/esp-idf/espressif__esp_modem/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("C:/Users/grego/Documents/GitHub/CdFdR-2025-Software/MCU_Controller/build/esp-idf/espressif__jsmn/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("C:/Users/grego/Documents/GitHub/CdFdR-2025-Software/MCU_Controller/build/esp-idf/espressif__json_parser/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("C:/Users/grego/Documents/GitHub/CdFdR-2025-Software/MCU_Controller/build/esp-idf/espressif__json_generator/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("C:/Users/grego/Documents/GitHub/CdFdR-2025-Software/MCU_Controller/build/esp-idf/espressif__esp_schedule/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("C:/Users/grego/Documents/GitHub/CdFdR-2025-Software/MCU_Controller/build/esp-idf/espressif__network_provisioning/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("C:/Users/grego/Documents/GitHub/CdFdR-2025-Software/MCU_Controller/build/esp-idf/espressif__esp-serial-flasher/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("C:/Users/grego/Documents/GitHub/CdFdR-2025-Software/MCU_Controller/build/esp-idf/espressif__esp_rcp_update/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("C:/Users/grego/Documents/GitHub/CdFdR-2025-Software/MCU_Controller/build/esp-idf/espressif__esp_secure_cert_mgr/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("C:/Users/grego/Documents/GitHub/CdFdR-2025-Software/MCU_Controller/build/esp-idf/espressif__esp_rainmaker/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("C:/Users/grego/Documents/GitHub/CdFdR-2025-Software/MCU_Controller/build/esp-idf/espressif__qrcode/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("C:/Users/grego/Documents/GitHub/CdFdR-2025-Software/MCU_Controller/build/esp-idf/joltwallet__littlefs/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("C:/Users/grego/Documents/GitHub/CdFdR-2025-Software/MCU_Controller/build/esp-idf/espressif__arduino-esp32/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
   include("C:/Users/grego/Documents/GitHub/CdFdR-2025-Software/MCU_Controller/build/esp-idf/main/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("C:/Users/grego/Documents/GitHub/CdFdR-2025-Software/MCU_Controller/build/esp-idf/TMCStepper/cmake_install.cmake")
 endif()
 
