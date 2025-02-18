@@ -1,0 +1,14 @@
+# VS Code Settings
+.vscode/
+/**/.vscode/
+
+# Project files
+**/build/
+**/build_*_*/
+**/sdkconfig
+**/sdkconfig.old
+**/managed_components
+
+.config
+*.o
+*.pyc
