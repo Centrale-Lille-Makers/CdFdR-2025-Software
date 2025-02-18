@@ -1,7 +1,7 @@
 {
     "version":            "1.1",
     "project_name":       "MCU_Controller",
-    "project_version":    "ec640ff-dirty",
+    "project_version":    "d384baa-dirty",
     "project_path":       "C:/Users/grego/Documents/GitHub/CdFdR-2025-Software/MCU_Controller",
     "idf_path":           "C:/Users/grego/esp/v5.3.2/esp-idf",
     "build_dir":          "C:/Users/grego/Documents/GitHub/CdFdR-2025-Software/MCU_Controller/build",

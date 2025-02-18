@@ -15,16 +15,17 @@
 #include <TMCStepper.h>
 
 #define M_EN_PIN 4 // Enable
-#define M_RX            18 // TMC2208/TMC2224 SoftwareSerial receive pin
-#define M_TX            17 // TMC2208/TMC2224 SoftwareSerial transmit pin
+#define M_RX 18    // TMC2208/TMC2224 SoftwareSerial receive pin
+#define M_TX 17    // TMC2208/TMC2224 SoftwareSerial transmit pin
 #define M_SERIAL_PORT Serial1
-#define M1_DIR_PIN 5 // Direction
-#define M1_STEP_PIN 6 // Step
-#define M1_DRIVER_ADDRESS 0b00
+#define M_DIR_PIN 7   // Direction
+#define M_STEP_PIN 15 // Step
+#define M_STEPbis_PIN 5 // Debug
+#define M1_DRIVER_ADDRESS 0b01
 #define R_SENSE 0.11f
+#define microstep 64 //8->32 16->16 64->128 32->64 wut ???
 
-//HardwareSerial mySerial(1);
-TMC2209Stepper driver(&Serial1, R_SENSE, M1_DRIVER_ADDRESS);
+// HardwareSerial mySerial(1);
 
 extern "C" void app_main(void)
 {
@@ -32,41 +33,18 @@ extern "C" void app_main(void)
     printf("Hello world!\n");
 
     pinMode(M_EN_PIN, OUTPUT);
-    pinMode(M1_STEP_PIN, OUTPUT);
-    pinMode(M1_DIR_PIN, OUTPUT);
+    pinMode(M_STEP_PIN, OUTPUT);
+    pinMode(M_STEPbis_PIN, OUTPUT);
+    pinMode(M_DIR_PIN, OUTPUT);
     digitalWrite(M_EN_PIN, LOW);
-    digitalWrite(M1_STEP_PIN, LOW);
-    
-    Serial1.begin(115200, SERIAL_8N1, M_RX, M_TX);
 
-    driver.begin();
-    driver.toff(5);
-    driver.rms_current(500); // mA
-    driver.pwm_autoscale(true);
- 
-    printf("Counting to infinity\n");
-    int i = 0;
-    for (;;)
+    for (uint16_t i = 200*microstep; i > 0; i--)
     {
-        // Run 5000 steps and switch direction in software
-        driver.microsteps(4);
-        for (uint16_t i = 5000; i > 0; i--)
-        {
-            digitalWrite(M1_STEP_PIN, HIGH);
-            delayMicroseconds(160);
-            digitalWrite(M1_STEP_PIN, LOW);
-            delayMicroseconds(160);
-        }
-        driver.microsteps(16);
-        for (uint16_t i = 5000; i > 0; i--)
-        {
-            digitalWrite(M1_STEP_PIN, HIGH);
-            delayMicroseconds(160);
-            digitalWrite(M1_STEP_PIN, LOW);
-            delayMicroseconds(160);
-        }
-
-        printf("i = %d\n", ++i);
-        vTaskDelay(pdMS_TO_TICKS(1));
+        digitalWrite(M_STEP_PIN, HIGH);
+        digitalWrite(M_STEPbis_PIN, HIGH);
+        delayMicroseconds(1000000/(200*microstep*2));
+        digitalWrite(M_STEP_PIN, LOW);
+        digitalWrite(M_STEPbis_PIN, LOW);
+        delayMicroseconds(1000000/(200*microstep*2));
     }
 }

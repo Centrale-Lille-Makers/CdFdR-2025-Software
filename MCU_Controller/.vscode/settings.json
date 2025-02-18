@@ -5,7 +5,7 @@
         "board/esp32s3-builtin.cfg"
     ],
     "idf.toolsPathWin": "C:\\Users\\grego\\.espressif",
-    "idf.portWin": "COM4",
+    "idf.portWin": "COM3",
     "idf.flashType": "UART",
     "files.associations": {
         "*.bplist": "json",
