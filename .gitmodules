@@ -1,0 +1,6 @@
+[submodule "MCU_Controller/components/TMCStepper/TMCStepper"]
+	path = MCU_Controller/components/TMCStepper/TMCStepper
+	url = https://github.com/teemuatlut/TMCStepper.git
+[submodule "MCU_Controller/components/FastAccelStepper"]
+	path = MCU_Controller/components/FastAccelStepper
+	url = https://github.com/gin66/FastAccelStepper
