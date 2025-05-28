@@ -11,11 +11,11 @@ class ledc_stepper
     friend bool IRAM_ATTR pcnt_on_reach(pcnt_unit_handle_t unit, const pcnt_watch_event_data_t *edata, void *user_ctx);
     friend void stopTask(void * pvParameter );
 public:
-    ledc_stepper(uint8_t step_pin, uint8_t dir_pin, uint8_t en_pin);
+    ledc_stepper(uint8_t step_pin, uint8_t dir_pin, uint8_t en_pin, bool invert_dir_pin=false);
     void step(int32_t position, uint32_t speed, bool wait = true, bool reset = false);
     void go_to(int32_t position, uint32_t speed, bool wait = true);
     void step_speed(int32_t speed);
-    void stop(bool stop_waiting = true);
+    void stop(bool stop_waiting = true, bool from_ISR = false);
     void disable();
     void enable();
     int get_position();
@@ -30,6 +30,7 @@ private:
     static uint8_t next_timer_channel;
     uint8_t _step_pin;
     gpio_num_t _dir_pin;
+    bool invert_dir_pin;
     gpio_num_t _en_pin;
     uint32_t _pos{0};
     ledc_timer_t _timer;
@@ -38,6 +39,9 @@ private:
     bool running = false;
     int position = 0;
     int pcnt_watch_point = 0;
+    int pcnt_objective = 0;
+    int32_t last_speed = 0;
+    static SemaphoreHandle_t pcnt_mutex;
 
     pcnt_unit_handle_t pcnt_unit = NULL;
     pcnt_channel_handle_t pcnt_chan = NULL;

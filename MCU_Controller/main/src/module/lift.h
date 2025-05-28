@@ -9,7 +9,7 @@
 
 class lift {
 public:
-    lift(uint8_t step_pin, uint8_t dir_pin, uint8_t en_pin, uint8_t suction_pin, uint8_t magnet_pin, uint8_t uart_adress, char tag);
+    lift(uint8_t step_pin, uint8_t dir_pin, uint8_t en_pin, uint8_t suction_pin, uint8_t magnet_pin, uint8_t microsteps, char tag);
     void enable_motor();
     void disable_suction();
     void enable_suction();
@@ -20,15 +20,15 @@ public:
     double get_position();
     void reset_position();
     void reset_all();
-    void calibrate(IHM ihm);
+    void calibrate(IHM *ihm);
     void stop_motor();
 
 private:
-    TMC2209Stepper *driver;
+    //TMC2209Stepper *driver;
     ledc_stepper *stepper;
     gpio_num_t _suction_pin;
     gpio_num_t _magnet_pin;
-    static constexpr int steps_per_mm = M_CHARIOT_STEPS_PER_TURN * M_CHARIOT_MICROSTEP/M_CHARIOT_TRAVEL_PER_TURN;
-    static constexpr int speed_stp = M_CHARIOT_SPEED_MM*steps_per_mm;
+    int steps_per_mm;
+    int speed_stp;
     char tag;
 };

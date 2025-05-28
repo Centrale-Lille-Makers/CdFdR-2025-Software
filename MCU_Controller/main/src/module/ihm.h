@@ -1,9 +1,9 @@
 #pragma once
 
-#include "libs/TM1638.h"
+#include "TM1638plus.h"
 
 
-class IHM : protected TM1638
+class IHM : protected TM1638plus
 {
 private:
     static constexpr uint_fast8_t _letters[26] = {
@@ -22,24 +22,25 @@ private:
 
 public:
     IHM(uint8_t clk_pin, uint8_t dio_pin, uint8_t stb_pin);
-    void writeMsg(String msg);
-    void showScore(uint_fast16_t score);
+    void writeMsg(const char *msg);
+    void showScore(unsigned long score);
     void showProgress(uint_fast8_t progress); //number between 0 and 255
     void showProgressLive(int start);
     void showProgressStop();
+    bool getButton(uint8_t s);
+    uint8_t getButtons();
     void wGetButton(uint8_t s);
-    button_t wGetButton();
     uint8_t wGetButtons();
     bool wChooseSide();
     bool wChooseCamp();
     void reset();
+    void setLED(uint8_t position, uint8_t value);
 
 private:
     static void showProgressTaskEntryPoint(void *pvParameters);
     TaskHandle_t showProgressTaskHandle = nullptr;
     void showProgressTask();
     int showProgressStart = 0;
-    button_t intToButton(u_int8_t i);
     void clearDig(u_int8_t i);
-    bool wTwoChoice(String msg, uint8_t choice1, uint8_t choice2);
+    bool wTwoChoice(const char *msg, uint8_t choice1, uint8_t choice2);
 };

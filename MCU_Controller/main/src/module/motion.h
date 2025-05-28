@@ -2,17 +2,19 @@
 
 #include "TMCStepper.h"
 #include "FastAccelStepper.h"
+#include "module/ihm.h"
 
 typedef struct {
     float x; // mm
     float y; // mm
     float r; // rotation en degrés
-} position;
+} position_t;
 
 class Motion {
 public:
     Motion();
     void disable_motors();
+    void calibrate(IHM *ihm);
 
 private:
     TMC2209Stepper *M1_driver;
@@ -29,4 +31,5 @@ private:
 
     void set_RMS(uint16_t current);
     void set_microstep(uint16_t ms);
+    position_t position; 
 };
