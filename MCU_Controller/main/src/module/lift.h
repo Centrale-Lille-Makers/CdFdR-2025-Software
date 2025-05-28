@@ -5,7 +5,7 @@
 #include "libs/ledc_stepper.h"
 #include "module/ihm.h"
 #include "config.h"
-#include "TMCStepper.h"
+//#include "TMCStepper.h"
 
 class lift {
 public:

@@ -6,4 +6,4 @@
 	url = https://github.com/gin66/FastAccelStepper
 [submodule "MCU_Controller/components/TM1638plus/TM1638plus"]
 	path = MCU_Controller/components/TM1638plus/TM1638plus
-	url = git@github.com:gavinlyonsrepo/TM1638plus.git
+	url = https://github.com/gavinlyonsrepo/TM1638plus.git

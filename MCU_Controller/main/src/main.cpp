@@ -33,8 +33,8 @@ void setup()
 
     //ESP_LOGI(TAG, "Motor serial initialized");
 
-    //motion = new Motion();
-    //ESP_LOGI(TAG, "Motion initialized");
+    motion = new Motion();
+    ESP_LOGI(TAG, "Motion initialized");
     
     liftG = new lift(M5_STP_PIN, M5_DIR_PIN, M_CHARIOT_EN_PIN, PUMP_VALVE1_PIN, ELECTRO1_PIN, M5_MICROSTEP, 'G');
     liftD = new lift(M6_STP_PIN, M6_DIR_PIN, M_CHARIOT_EN_PIN, PUMP_VALVE2_PIN, ELECTRO2_PIN, M6_MICROSTEP, 'D');
