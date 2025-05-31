@@ -54,6 +54,7 @@ void stopTask(void *pvParameter)
     {
         xTaskNotifyWait(0x00, ULONG_MAX, NULL, portMAX_DELAY);
         stepper->stop(true, true);
+        ESP_LOGI(TAG, "stopTaskWatermark: %d", uxTaskGetStackHighWaterMark(NULL));
     }
 }
 
@@ -158,7 +159,7 @@ ledc_stepper::ledc_stepper(uint8_t step_pin, uint8_t dir_pin, uint8_t en_pin, bo
 
     disable();
 
-    xTaskCreate(stopTask, "ledc_stepperStopTask", 8192, (void *)this, PRIORITY_LIFT_STEPPERS, &xStopTask);
+    xTaskCreate(stopTask, "ledc_stepperStopTask", 8192*4, (void *)this, PRIORITY_LIFT_STEPPERS, &xStopTask);
     xTaskToNotify = xStopTask; //default value
 }
 

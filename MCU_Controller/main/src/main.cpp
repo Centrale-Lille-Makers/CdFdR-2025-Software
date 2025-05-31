@@ -11,16 +11,27 @@
 #include "module/IHM.h"
 #include "module/lift.h"
 #include "module/motion.h"
+#include "module/lidar.h"
 #include "config.h"
 
 static const char *TAG = "main";
 
+void waitTiretteAndStart();
+void calibrate_pos();
+void strat1();
+void goForward();
+void goRotate();
+void step1(int l);
+void step1_1(double h);
+void calibrage();
 
+int start = -1;
 Motion *motion = NULL;
 lift *liftG = NULL;
 lift *liftD = NULL;
 IHM *ihm = NULL;
-ld19p *lidar = NULL;
+ld19p *Ld19p = NULL;
+lidar *Lidar = NULL;
 
 void setup()
 {
@@ -30,6 +41,12 @@ void setup()
     //M_DRIVE_SERIAL.begin(115200, SERIAL_8N1, M_DRIVE_RX, M_DRIVE_TX);
     //M_CHARIOT_SERIAL.begin(115200, SERIAL_8N1, M_CHARIOT_RX, M_CHARIOT_TX);
     //vTaskDelay(pdMS_TO_TICKS(100)); // for the UART com to settle (not proved to be usefull, but if it aint brock dont fix it)
+    gpio_reset_pin((gpio_num_t)M_CHARIOT_RX);
+    gpio_set_direction((gpio_num_t)M_CHARIOT_RX, GPIO_MODE_OUTPUT);
+    gpio_set_level((gpio_num_t)M_CHARIOT_RX, 0);
+    gpio_reset_pin((gpio_num_t)M_CHARIOT_TX);
+    gpio_set_direction((gpio_num_t)M_CHARIOT_TX, GPIO_MODE_OUTPUT);
+    gpio_set_level((gpio_num_t)M_CHARIOT_TX, 0);
 
     //ESP_LOGI(TAG, "Motor serial initialized");
 
@@ -43,7 +60,10 @@ void setup()
     ihm = new IHM(CLK_IHM_PIN, DIO_IHM_PIN, STB_IHM_PIN);
     ESP_LOGI(TAG, "IHM initialized");
     
-    lidar = new ld19p(LIDAR_SERIAL, LIDAR_RX_PIN);
+    //Ld19p = new ld19p(LIDAR_SERIAL, LIDAR_RX_PIN);
+    //ESP_LOGI(TAG, "Ld19p initialized");
+    
+    Lidar = new lidar(BALISE_WIDTH, LIDAR_SERIAL, LIDAR_RX_PIN, motion);
     ESP_LOGI(TAG, "LiDAR initialized");
     
     // to change
@@ -75,50 +95,329 @@ extern "C" void app_main(void)
     initArduino();
     setup();
 
-    //ledc_stepper stepper(M5_STP_PIN, M5_DIR_PIN, M_CHARIOT_EN_PIN, true);
+    ihm->setLED(0, 1);
+    liftG->calibrate(ihm);
+    ihm->setLED(1, 1);
+    liftD->calibrate(ihm);
+    ihm->setLED(2, 1);
+    motion->calibrate(ihm);
+    ihm->setLED(3, 1);
 
-    // TMC2209Stepper driver(&M_CHARIOT_SERIAL, M_R_SENSE, M5_DRIVER_ADDRESS);
-    // driver.begin();
-    // driver.toff(5);
-    // driver.rms_current(M_CHARIOT_CURRENT_MA);
-    // driver.microsteps(M_CHARIOT_MICROSTEP);
+    ihm->writeMsg("Prog.    ");
+    uint8_t btns = ihm->wGetButtons();
+    
+    int pos = 0;
+    while ((btns & 1) == 0) {
+        btns >>= 1;
+        ++pos;
+    }
+    btns = pos;
+    ihm->showScore(btns);
+    ihm->writeMsg("Sel");
 
-    // stepper.reset_position();
-    // stepper.enable();
+    switch (btns)
+    {
+    case 0:
+        calibrage();
+        break;
+    case 1:
+        calibrage();
+        break;
+    case 2:
+        calibrage();
+        break;
+    case 4:
+    case 5:
+    case 6:
+    case 7:
+    case 3:
+        calibrage();
+        break;
+    default:
+        break;
+    }
+
+    waitTiretteAndStart();
+
+    switch (btns)
+    {
+    case 0:
+        motion->translate(450, 90, 200, 200, true);
+        motion->translate(50, 0, 200, 200, true); 
+        liftG->go_to(145-LIFT_0); // Lever large
+        motion->translate(70, 90, 30, 30, true); // Collage robot
+        liftG->go_to(130-LIFT_0); // Contact ventouse
+        liftG->enable_suction();
+        vTaskDelay(pdMS_TO_TICKS(500));
+        liftG->go_to(142-LIFT_0); // Lever planche
+        motion->translate(20, 270, 200, 100, true); // S''eloigner un peu
+        liftG->go_to(170-LIFT_0); // Lever planche
+        motion->translate(80, 270, 200, 100, true); // S''eloigner
+        motion->rotate(180, 150, 150); // rotation
+
+        vTaskDelay(pdMS_TO_TICKS(1000));
+        // Ca marche
+        liftD->go_to(145-LIFT_0); // Lever large
+        motion->translate(85, 270, 200, 100, true); // collage robot 2
+        liftD->go_to(130-LIFT_0); // Contact ventouse 2
+        liftD->enable_suction();
+        vTaskDelay(pdMS_TO_TICKS(1000));
+        liftD->go_to(180-LIFT_0); // Lever planche 2
+        motion->translate(50, 90, 200, 100, true); // S''eloigner
+        motion->translate(50, 0, 200, 200, true); // Déplacement latéral
+
+        liftD->go_to(130-LIFT_0);
+        liftD->enable_magnets();
+        motion->translate(110, 270, 200, 100, true); // Avancer pour contct cannette
+        liftD->go_to(135-LIFT_0);
+        vTaskDelay(pdMS_TO_TICKS(500));
+        motion->translate(150, 90, 200, 100, true); // Reculer
+
+
+        motion->rotate(180, 150, 150); // rotation
+        motion->translate(70, 90, 200, 100, true); // Contact cannettes 2
+        motion->translate(100, 0, 200, 200, true); // Déplacement latéral
+        motion->translate(70, 270, 200, 100, true); // Avancer pour contct cannette 2
+        liftG->go_to(155-LIFT_0); 
+        liftG->enable_magnets();
+        vTaskDelay(pdMS_TO_TICKS(500));
+        motion->translate(70, 270, 200, 100, true); // Reculer
+        
+        
+        
+        vTaskDelay(pdMS_TO_TICKS(5000));
+        liftD->go_to(130-LIFT_0); // En bas
+        liftG->go_to(130-LIFT_0); // En bas
+
+        liftD->disable_magnets();
+        liftG->disable_magnets();
+        liftG->disable_suction();
+        liftD->disable_suction();
+        break;
+    case 1:
+        // liftG->go_to(145-LIFT_0); // Lever large
+        // motion->translate(450, 90, 200, 200, true);
+        // liftG->go_to(130-LIFT_0); // Contact ventouse
+        // motion->translate(50, 0, 200, 200, true); 
+        // motion->translate(70, 90, 30, 30, true); // Collage robot
+        // liftG->enable_suction();
+        // vTaskDelay(pdMS_TO_TICKS(500));
+        // liftG->go_to(142-LIFT_0); // Lever planche
+        // motion->translate(20, 270, 200, 100, true); // S''eloigner un peu
+        // liftG->go_to(170-LIFT_0); // Lever planche
+        // motion->translate(80, 270, 200, 100, true); // S''eloigner
+        // motion->rotate(180, 150, 150); // rotation
+
+        liftG->go_to(145-LIFT_0, false); // Lever large
+        motion->translate(450, 90, 200, 200, true);
+        liftG->wait();
+        motion->translate(50, 0, 200, 200, true); 
+        motion->translate(70, 90, 30, 30, true); // Collage robot
+        liftG->go_to(135-LIFT_0); // Contact ventouse
+        liftG->enable_suction();
+        vTaskDelay(pdMS_TO_TICKS(500));
+        liftG->go_to(142-LIFT_0); // Lever planche
+        motion->translate(20, 270, 200, 100, true); // S''eloigner un peu
+        liftG->go_to(170-LIFT_0, false); // Lever planche
+        motion->translate(80, 270, 200, 100, true); // S''eloigner
+        motion->rotate(180, 150, 150); // rotation
+
+        vTaskDelay(pdMS_TO_TICKS(5000));
+        break;
+    case 2:
+        motion->translate(450, 90, 200, 200, true);
+        motion->translate(50, 0, 200, 200, true); 
+        motion->translate(70, 90, 30, 30, true); // Collage robot
+        motion->translate(20, 270, 200, 100, true); // S''eloigner un peu
+        motion->translate(80, 270, 200, 100, true); // S''eloigner
+        motion->rotate(180, 150, 150); // rotation
+
+        
+        motion->translate(85, 270, 200, 100, true); // collage robot 2
+        motion->translate(50, 90, 200, 100, true); // S''eloigner
+        motion->translate(50, 0, 200, 200, true); // Déplacement latéral
+
+        liftD->go_to(130-LIFT_0);
+        liftD->enable_magnets();
+        motion->translate(110, 270, 200, 100, true); // Avancer pour contct cannette
+        vTaskDelay(pdMS_TO_TICKS(500));
+        liftD->go_to(150-LIFT_0);
+        motion->translate(150, 90, 200, 100, true); // Reculer
+        
+        motion->rotate(180, 150, 150); // rotation
+        motion->translate(70, 90, 200, 100, true); // Contact cannettes 2
+        motion->translate(100, 0, 200, 200, true); // Déplacement latéral
+        motion->translate(70, 270, 200, 100, true); // Avancer pour contct cannette 2
+        liftG->go_to(130-LIFT_0); 
+        liftG->enable_magnets();
+        vTaskDelay(pdMS_TO_TICKS(500));
+        liftD->go_to(150-LIFT_0);
+        motion->translate(70, 270, 200, 100, true); // Reculer
+        
+        
+        
+        vTaskDelay(pdMS_TO_TICKS(5000));
+        liftD->go_to(130-LIFT_0); // En bas
+        liftG->go_to(130-LIFT_0); // En bas
+        
+
+        break;
+    case 4:
+        liftD->go_to(150 - LIFT_0, false);
+        motion->translate(350, 90, 200, 100, true);
+        motion->translate(365, 180, 200, 100, true); 
+        motion->translate(355, 270, 60, 40, true);
+        ihm->showScore(4);
+        motion->translate(405, 90, 200, 100, true);
+        motion->translate(200, 180, 200, 100, true);
+        motion->translate(700, 90, 200, 100, true);
+        motion->translate(500, 0, 200, 100, true);
+        motion->translate(1050, 277, 60, 40, true);
+        ihm->showScore(8);
+        motion->translate(200, 90, 200, 100, true);
+        motion->translate(850, 180, 200, 100, true);
+        motion->translate(1000, 90, 200, 100, true);
+        ihm->showScore(18);
+        
+
+        break;
+    case 5:
+        liftD->go_to(150 - LIFT_0, false);
+        motion->translate(350, 90, 200, 100, true);
+        motion->translate(365, 0, 200, 100, true); 
+        motion->translate(355, 270, 60, 40, true);
+        ihm->showScore(4);
+        motion->translate(405, 90, 200, 100, true);
+        motion->translate(200, 0, 200, 100, true);
+        motion->translate(700, 90, 200, 100, true);
+        motion->translate(500, 180, 200, 100, true);
+        motion->translate(1050, 263, 60, 40, true);
+        ihm->showScore(8);
+        motion->translate(200, 90, 200, 100, true);
+        motion->translate(850, 0, 200, 100, true);
+        motion->translate(1000, 90, 200, 100, true);
+        ihm->showScore(18);
+        
+
+        break;
+    // case 5:
+    //     liftD->enable_magnets();
+    //     liftG->enable_magnets();
+    //     for (int i = 0; i < 10; i++)
+    //     {
+            
+    //         liftD->go_to(130-LIFT_0); // En bas
+    //         liftG->go_to(130-LIFT_0); // En bas
+    //         vTaskDelay(pdMS_TO_TICKS(5000));
+    //         liftD->go_to(150-LIFT_0); // En bas
+    //         liftG->go_to(150-LIFT_0); // En bas
+    //         vTaskDelay(pdMS_TO_TICKS(5000));
+    //     }
+    //     liftD->disable_magnets();
+    //     liftG->disable_magnets();
+        
+    //     break;
+    case 6:
+        liftD->go_to(155 - LIFT_0, false);
+        motion->translate(350, 90, 200, 100, true);
+        motion->translate(365, 0, 200, 100, true); 
+        motion->translate(355, 270, 60, 40, true);
+        ihm->showScore(4);
+        motion->translate(405, 90, 200, 100, true);
+        motion->translate(400, 65, 200, 100, true);
+        motion->rotate(720, 75, 50);
+        motion->rotate(-720, 75, 50);
+        motion->translate(650, 65, 200, 100, true);
+        ihm->showScore(14);
+        break;
+    case 7:
+        liftD->go_to(155 - LIFT_0, false);
+        motion->translate(350, 90, 200, 100, true);
+        motion->translate(365, 180, 200, 100, true); 
+        motion->translate(355, 270, 60, 40, true);
+        ihm->showScore(4);
+        motion->translate(405, 90, 200, 100, true);
+        motion->translate(400, 115, 200, 100, true);
+        motion->rotate(-720, 75, 50);
+        motion->rotate(720, 75, 50);
+        motion->translate(650, 115, 200, 100, true);
+        ihm->showScore(14);
+        break;
+    default:
+        break;
+    }
+
     // while (1) {
-    // stepper.go_to(200*32, 200*32);
-    // stepper.go_to(0, 200*32);
+    //     liftD->go_to(80, false);
+    //     liftG->go_to(80);
+    //     liftD->wait();
+    //     vTaskDelay(pdMS_TO_TICKS(1000));
+    //     liftD->disable_suction();
+    //     liftD->disable_magnets();
+    //     liftG->disable_suction();
+    //     liftG->disable_magnets();
+
+    //     liftD->go_to(10, false);
+    //     liftG->go_to(40);
+    //     liftG->enable_suction();
+    //     liftG->enable_magnets();
+    //     liftD->wait();
+    //     liftD->enable_suction();
+    //     liftD->enable_magnets();
+    //     vTaskDelay(pdMS_TO_TICKS(1000));
     // }
 
-    ihm->setLED(0, 1);
-    //liftG->calibrate(ihm);
-    liftG->reset_all();
-    ihm->setLED(1, 1);
-    //liftD->calibrate(ihm);
-    liftD->reset_all();
-    ihm->setLED(2, 1);
-    //motion->calibrate(ihm);
-    
-    while (1) {
-        liftD->go_to(80, false);
-        liftG->go_to(80);
-        liftD->wait();
-        vTaskDelay(pdMS_TO_TICKS(1000));
-        liftD->disable_suction();
-        liftD->disable_magnets();
-        liftG->disable_suction();
-        liftG->disable_magnets();
 
-        liftG->go_to(40, false);
-        liftD->go_to(10);
-        liftG->wait();
-        liftD->enable_suction();
-        liftG->enable_suction();
-        liftG->enable_magnets();
-        liftD->enable_magnets();
-        vTaskDelay(pdMS_TO_TICKS(1000));
-    }
+    ESP_LOGI(TAG, "Done");
 
     // WARNING: if program reaches end of function app_main() the MCU will
     // restart.
+}
+
+
+void waitTiretteAndStart() {
+    ihm->writeMsg("Ready   ");
+    Lidar->startDetection();
+    gpio_reset_pin((gpio_num_t)TIRETTE_PIN);
+    gpio_set_direction((gpio_num_t)TIRETTE_PIN, GPIO_MODE_INPUT);
+    while (!gpio_get_level((gpio_num_t)TIRETTE_PIN))
+    {
+        while (!gpio_get_level((gpio_num_t)TIRETTE_PIN))
+        {
+            vTaskDelay(pdMS_TO_TICKS(10));
+        }
+        vTaskDelay(pdMS_TO_TICKS(100));
+    }
+    start = millis() + 100;
+    //ihm->showProgressLive(start);
+    ihm->showScore(0);
+}
+
+void calibrate_pos() {
+    //to write lol
+}
+
+void strat1()
+{
+    //to write
+}
+
+// void goForward() {
+//     motion->translate(1000, 270);
+// }
+
+// void goRotate() {
+//     motion->rotate(360*5, 150, 150);
+// }
+
+void calibrage() {
+    motion->translate(100, 90);
+}
+
+void step1(int l) {
+    motion->translate(l, 90, 100, 100, true);
+}
+
+void step1_1(double h) {
+    liftD->go_to(h - LIFT_0, true);
 }

@@ -2,6 +2,7 @@
 
 #include "esp_log.h"
 #include "driver/ledc.h"
+#include "config.h"
 
 static const char *TAG = "ld19p";
 
@@ -10,109 +11,125 @@ I was not able to control the speed of the motor, the lidar won't switch to pwm 
 */
 
 #define HEADER 0x54
+#define VERLEN 0x2C
+#define POINT_PER_PACKET 12
+#define PACKET_SIZE 47
+#define MIN_INTERESTED_SIZE ((551 * PACKET_SIZE)/POINT_PER_PACKET) // There are 500 points per revolutions at 10Hz, and each packet of 47 bytes contains 12 points
+#define UART_BUFFER MIN_INTERESTED_SIZE*2
+
+void uart_partial_flush(void *pvParameter)
+{
+    ld19p *lidar = static_cast<ld19p *>(pvParameter);
+    while (1) {
+        vTaskDelay(pdMS_TO_TICKS(80));
+        
+        lidar->partialFlush();
+        //ESP_LOGI(TAG, "Flush Task Watermark %d", uxTaskGetStackHighWaterMark(NULL));
+    }
+}
 
 ld19p::ld19p(uart_port_t uart_num, uint8_t rx_pin)
 {
+    this->uart_num = uart_num;
     uart_config_t uart_config = {
         .baud_rate = 230400,
         .data_bits = UART_DATA_8_BITS,
         .parity = UART_PARITY_DISABLE,
         .stop_bits = UART_STOP_BITS_1,
-        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE};
+        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+        .rx_flow_ctrl_thresh = 0};
     ESP_ERROR_CHECK(uart_param_config(uart_num, &uart_config));
 
     ESP_ERROR_CHECK(uart_set_pin(uart_num, UART_PIN_NO_CHANGE, rx_pin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE)); // using UART_PIN_NO_CHANGE for pins not used
 
     // Setup UART buffered IO with event queue
-    const int uart_buffer_size = ((500 + 10)* 47)/12; // There are 500 points per revolutions at 10Hz, and each packet of 47 bytes contains 12 points
     QueueHandle_t uart_queue;
     // Install UART driver using an event queue here
-    ESP_ERROR_CHECK(uart_driver_install(uart_num, uart_buffer_size,
+    ESP_ERROR_CHECK(uart_driver_install(uart_num, UART_BUFFER,
                                         0, 10, &uart_queue, 0));
+
+
+    xTaskCreate(uart_partial_flush, "ld19p_partialFlushTask", 8192*4, (void *)this, PRIORITY_LD19P, &partial_flush_handle);
 
     ESP_LOGI(TAG, "LiDAR is ready on GPIO%d", rx_pin);
 }
 
-// ld19p::ld19p(uart_port_t uart_num, uint8_t rx_pin, uint8_t pwm_pin)
-// {
-//     motor_control = true;
+void ld19p::partialFlush()
+{
+    size_t size;
+    uart_get_buffered_data_len(uart_num, &size);
+    int flush_size = size - (size_t)MIN_INTERESTED_SIZE;
+    //ESP_LOGI(TAG, "Flushing: %d from %d", flush_size, size);
+    if (flush_size > 0) {
+        uint8_t* tmp = new uint8_t[flush_size];
+        uart_read_bytes(uart_num, tmp, flush_size, pdMS_TO_TICKS(1));
+        delete[] tmp;
+    }
+    uart_get_buffered_data_len(uart_num, &size);
+    //ESP_LOGI(TAG, "Flushing: remaining %d", size);
+}
 
-//     ledc_timer_config_t ledc_timer = {
-//         .speed_mode       = LEDC_LOW_SPEED_MODE,
-//         .duty_resolution  = LEDC_TIMER_10_BIT,
-//         .timer_num        = LEDC_TIMER_0,
-//         .freq_hz          = 30000,
-//         .clk_cfg          = LEDC_AUTO_CLK
-//     };
-//     ledc_timer_config(&ledc_timer);
+uint16_t ld19p::angleStep(uint16_t startAngle, uint16_t endAngle)
+{
+  if (startAngle <= endAngle) {
+    return (endAngle - startAngle) / (POINT_PER_PACKET-1);
+  } else {
+    return (36000 + endAngle - startAngle) / (POINT_PER_PACKET-1);
+  }
+}
 
-//     ledc_channel_config_t ledc_channel = {
-//         .gpio_num   = pwm_pin,
-//         .speed_mode = LEDC_LOW_SPEED_MODE,
-//         .channel    = LEDC_CHANNEL_0,
-//         .timer_sel  = LEDC_TIMER_0,
-//         .duty       = 512, // starting duty cycle of 50% to trigger motor controls
-//         .hpoint     = 0
-//     };
-//     ledc_channel_config(&ledc_channel);
+int ld19p::get_full_tour(LidarPoint_t points[], int size)
+{
+    if (size == 0) return 0;
+    
+    ESP_LOGI(TAG, "Watermark:%d", uxTaskGetStackHighWaterMark(NULL));
+    partialFlush();
+    ESP_LOGI(TAG, "Started get_full_tour");
+    int pt_nb = 0;
+    uint8_t data[MIN_INTERESTED_SIZE];
+    ESP_LOGI(TAG, "Watermark:%d", uxTaskGetStackHighWaterMark(NULL));
+    int len = uart_read_bytes(uart_num, data, MIN_INTERESTED_SIZE, pdMS_TO_TICKS(150));
+    if (len == 0) {
+        ESP_LOGE(TAG, "Got no points from LiDAR");
+        return 0;
+    }
+    int i = 0;
+    while (i + PACKET_SIZE <= len)
+    {
+        if (data[i] == HEADER && data[i + 1] == VERLEN)
+        {
+            //ESP_LOGI(TAG, "Found Header");
+            int prev_d = 0;
+            if (CalCRC8(&data[i+2], 44) == data[i + 46]) {
+                //ESP_LOGI(TAG, "CRC correct");
+                const LiDARFrameTypeDef* frame = reinterpret_cast<const LiDARFrameTypeDef*>(&data[i]);
+                //ESP_LOGI(TAG, "Header: %d, verlen: %d", frame->header, frame->ver_len);
+                uint16_t step = angleStep(frame->start_angle, frame->end_angle);
+                for (int y = 0; y < POINT_PER_PACKET; ++y){
+                    points[pt_nb].angle = (frame->start_angle + step*y)%36000;
+                    points[pt_nb].distance = frame->point[y].distance;
+                    int next_d = (points[pt_nb].angle + 36000 - points[0].angle) % 36000;
+                    //ESP_LOGI(TAG, "pt_num: %d, pt_angle: %d, pt_d: %d, next_d: %d", pt_nb, points[pt_nb].angle, points[pt_nb].distance, next_d);
+                    if (next_d < prev_d) return pt_nb;
+                    ++pt_nb;
+                    if (pt_nb >= size) return size;
+                    prev_d = next_d;
+                }
+                i += PACKET_SIZE;
+            }
+            else ESP_LOGE(TAG, "CRC incorrect");
+        } else ++i;
+    }
 
-//     vTaskDelay(pdMS_TO_TICKS(500));
-
-//     stop();
-
-//     ESP_LOGI(TAG, "LiDAR pwm controls initialized on pin %d", pwm_pin);
-
-//     ld19p(uart_num, rx_pin);
-// }
-
-// void ld19p::set_speed_freq(uint8_t speed_freq)
-// {
-//     if (!check_motor_control()) return;
-//     this->speed_freq = speed_freq;
-//     ESP_LOGI(TAG, "LiDAR speed set to %d freq", speed_freq);
-// }
-
-// uint8_t ld19p::get_speed_freq()
-// {
-//     return speed_freq;
-// }
-
-// void ld19p::set_duty_cycle(uint32_t duty_cycle)
-// {
-//     ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, duty_cycle);
-//     ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0);
-// }
-
-// bool ld19p::check_motor_control()
-// {
-//     if (!motor_control) {
-//         ESP_LOGE(TAG, "LiDAR motor controls not initialized !");
-//         return false;
-//     }
-//     return true;
-// }
-
-// void ld19p::start()
-// {
-//     if (!check_motor_control()) return;
-//     set_duty_cycle(duty_cycle);
-//     ESP_LOGI(TAG, "LiDAR motor started");
-// }
-
-// void ld19p::stop()
-// {
-//     if (!check_motor_control()) return;
-//     set_duty_cycle(0);
-//     ESP_LOGI(TAG, "LiDAR motor stopped");
-// }
+    return pt_nb;
+}
 
 uint8_t ld19p::CalCRC8(uint8_t *p, uint8_t len)
 {
-    uint8_t crc = 0;
-    uint16_t i;
-    for (i = 0; i < len; i++)
+    uint8_t crc = 0xD8; // precalculated the CRC of header
+    for (uint16_t i = 0; i < len; ++i)
     {
-        crc = CrcTable[(crc ^ *p++) & 0xff];
+        crc = crcTable[(crc ^ *p++) & 0xff];
     }
     return crc;
 }

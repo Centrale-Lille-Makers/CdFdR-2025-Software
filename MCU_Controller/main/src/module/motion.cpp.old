@@ -1,6 +1,4 @@
 #include "motion.h"
-#include "config.h"
-#include "lidar.h"
 
 static const char *TAG = "motion";
 
@@ -49,9 +47,6 @@ Motion::Motion() {
     current_objective[3].steps = 0;
 
     disable_motors();
-
-    stepping_mutex = xSemaphoreCreateMutex();
-
     ESP_LOGI(TAG, "created");
 }
 
@@ -70,10 +65,6 @@ void Motion::calibrate(IHM *ihm)
     ihm->writeMsg("c mot  y");
     ihm->wGetButton(7);
     enable_motors();
-    pos.x = 0;
-    pos.y = 0;
-    pos.r = 0;
-    objective_pos = pos;
     ihm->writeMsg("accepted");
     vTaskDelay(pdMS_TO_TICKS(1000));
     ihm->writeMsg("");
@@ -110,18 +101,18 @@ void Motion::resume()
 
 void Motion::set_pos(position_t absolute_pos)
 {
-    pos = absolute_pos;
+    position = absolute_pos;
 }
 
 void Motion::execute_moves(double c1, double c2, double c3, double c4, int steps, int speed, int accel, bool blocking) // absolue
 {
+    ESP_LOGI(TAG, "Waiting before executing moves");
+    wait();
     ESP_LOGI(TAG, "Executing moves");
-    moved = true;
-    xSemaphoreTake(stepping_mutex, portMAX_DELAY);
-    current_objective[0].steps = c1*steps*M1_MICROSTEP;
-    current_objective[1].steps = c2*steps*M2_MICROSTEP;
-    current_objective[2].steps = c3*steps*M3_MICROSTEP;
-    current_objective[3].steps = c4*steps*M4_MICROSTEP;
+    current_objective[0].steps += c1*steps*M1_MICROSTEP;
+    current_objective[1].steps += c2*steps*M2_MICROSTEP;
+    current_objective[2].steps += c3*steps*M3_MICROSTEP;
+    current_objective[3].steps += c4*steps*M4_MICROSTEP;
     
     current_objective[0].speed = fabs(c1)*speed*M1_MICROSTEP;
     current_objective[1].speed = fabs(c2)*speed*M2_MICROSTEP;
@@ -132,14 +123,13 @@ void Motion::execute_moves(double c1, double c2, double c3, double c4, int steps
     current_objective[1].accel = fabs(c2)*accel*M2_MICROSTEP;
     current_objective[2].accel = fabs(c3)*accel*M3_MICROSTEP;
     current_objective[3].accel = fabs(c4)*accel*M4_MICROSTEP;
-    
+
     current_objective[0].jerk = fabs(c1)*M1_MICROSTEP;
     current_objective[1].jerk = fabs(c2)*M2_MICROSTEP;
     current_objective[2].jerk = fabs(c3)*M3_MICROSTEP;
     current_objective[3].jerk = fabs(c4)*M4_MICROSTEP;
-    
+
     execute_steps();
-    xSemaphoreGive(stepping_mutex);
     if (blocking) {
         ESP_LOGI(TAG, "Waiting move executions");
         wait();
@@ -149,8 +139,8 @@ void Motion::execute_moves(double c1, double c2, double c3, double c4, int steps
 
 void Motion::execute_steps()
 {
-    //ESP_LOGI(TAG, "Executing steps");
-    //ESP_LOGI(TAG, "Stepper 1: steps: %d, speed: %d, accel: %d, liear_accel: %d", (int)current_objective[0].steps, (int)current_objective[0].speed, (int)current_objective[0].accel, (int)current_objective[0].jerk);
+    ESP_LOGI(TAG, "Executing steps");
+    ESP_LOGI(TAG, "Stepper 1: steps: %d, speed: %d, accel: %d, liear_accel: %d", (int)current_objective[0].steps, (int)current_objective[0].speed, (int)current_objective[0].accel, (int)current_objective[0].jerk);
     M1_stepper->setSpeedInHz(current_objective[0].speed);
     M2_stepper->setSpeedInHz(current_objective[1].speed);
     M3_stepper->setSpeedInHz(current_objective[2].speed);
@@ -164,129 +154,27 @@ void Motion::execute_steps()
     M3_stepper->setLinearAcceleration(current_objective[2].jerk);
     M4_stepper->setLinearAcceleration(current_objective[3].jerk);
 
-    
     UBaseType_t prvPriority = uxTaskPriorityGet(NULL);
     vTaskPrioritySet(NULL, PRIORITY_SYNC_MOTORS);
-    moved = true;
     M1_stepper->moveTo(current_objective[0].steps);
     M2_stepper->moveTo(current_objective[1].steps);
     M3_stepper->moveTo(current_objective[2].steps);
     M4_stepper->moveTo(current_objective[3].steps);
     vTaskPrioritySet(NULL, prvPriority);
-}
-
-position_t Motion::relative_pos_futur()
-{
-    position_t delta={0, 0, 0};
-    if (stopped)
-    {
-        delta = getPosDelta(2);
-    }
-    else if (moved)
-    {
-        delta = getPosDelta(1);
-    }
-    position_t pos = get_pos();
-
-    delta.r = atan2(delta.y, delta.x) * 180 / PI - pos.r;
-    delta.x = sqrt(delta.x*delta.x+delta.y*delta.y);
-    return delta; // x = distance, r = angle.
+    ESP_LOGI(TAG, "Done executing steps");
 }
 
 void Motion::wait()
 {
-    while (isRunning()) {
-        position_t pos = get_pos();
-        ESP_LOGE(TAG, "Waiting. Current pos - x: %f, y: %f, r: %f", pos.x, pos.y, pos.r);
-        pos = getPosDelta(1);
-        ESP_LOGE(TAG, "Waiting. Futur pos - x: %f, y: %f, r: %f", pos.x, pos.y, pos.r);
-        pos = getPosDelta(2);
-        ESP_LOGE(TAG, "Waiting. If had moved pos - x: %f, y: %f, r: %f", pos.x, pos.y, pos.r);
-        vTaskDelay(pdMS_TO_TICKS(100));
+    while (stopped || M1_stepper->isRunning() || M2_stepper->isRunning() || M3_stepper->isRunning() || M4_stepper->isRunning()) {
+        //ESP_LOGI(TAG, "Stepper 1 running: %d, pos: %d", M1_stepper->isRunning(), (int)M1_stepper->getCurrentPosition());
+        vTaskDelay(pdMS_TO_TICKS(10));
     }
-    updatePos();
-    ESP_LOGE(TAG, "Done waiting. Current pos - x: %f, y: %f, r: %f", pos.x, pos.y, pos.r);
 }
 
-void Motion::updatePos()
+void Motion::update_pos()
 {
-    if (isRunning() || !moved) return;
-    xSemaphoreTake(stepping_mutex, portMAX_DELAY);
-    pos = objective_pos;
-    M1_stepper->setCurrentPosition(0);
-    M2_stepper->setCurrentPosition(0);
-    M3_stepper->setCurrentPosition(0);
-    M4_stepper->setCurrentPosition(0);
-    moved = false;
-    xSemaphoreGive(stepping_mutex);
-}
-
-position_t Motion::get_pos()
-{
-    position_t pos;
-    pos.x=this->pos.x;
-    pos.y=this->pos.y;
-    pos.r=this->pos.r;
-    if (moved) {
-        position_t delta = getPosDelta();
-        pos.x += delta.x;
-        pos.y += delta.y;
-        pos.r += delta.r;
-    }
-    return pos;
-}
-
-position_t Motion::getPosDelta(uint8_t type)
-{
-    double d;
-    if (current_objective[0].steps != 0) {
-        int32_t steps_pos = 0;
-        switch (type)
-        {
-        case 0:
-            steps_pos = M1_stepper->getCurrentPosition();
-            break;
-        case 1:
-            steps_pos = M1_stepper->stepsToStop()*((current_objective[0].steps > 0) - (current_objective[0].steps < 0));
-            break;
-        case 2:
-            steps_pos = (current_objective[0].steps-M1_stepper->getCurrentPosition() < current_objective[0].speed) ? current_objective[0].steps-M1_stepper->getCurrentPosition() : current_objective[0].speed*((current_objective[0].steps > 0) - (current_objective[0].steps < 0));
-            break;
-        default:
-            break;
-        }
-        d = (double)steps_pos/(double)current_objective[0].steps;
-    } else if (current_objective[1].steps != 0) {
-        int32_t steps_pos = 0;
-        switch (type)
-        {
-        case 0:
-            steps_pos = M2_stepper->getCurrentPosition();
-            break;
-        case 1:
-            steps_pos = M2_stepper->stepsToStop()*((current_objective[1].steps > 0) - (current_objective[1].steps < 0));
-            break;
-        case 2:
-            steps_pos = (current_objective[1].steps-M2_stepper->getCurrentPosition() < current_objective[1].speed) ? current_objective[1].steps-M2_stepper->getCurrentPosition() : current_objective[1].speed*((current_objective[1].steps > 0) - (current_objective[1].steps < 0));
-            break;
-        default:
-            break;
-        }
-        d = (double)steps_pos/(double)current_objective[1].steps;
-    } else {
-        ESP_LOGE(TAG, "Asked getPosDelta but havent moved ?");
-        d = 0;
-    }
-    position_t delta;
-    delta.r = (objective_pos.r - pos.r)*d;
-    delta.x = (objective_pos.x - pos.x)*d;
-    delta.y = (objective_pos.y - pos.y)*d;
-    return delta;
-}
-
-bool Motion::isRunning()
-{
-    return stopped || M1_stepper->isRunning() || M2_stepper->isRunning() || M3_stepper->isRunning() || M4_stepper->isRunning();
+    
 }
 
 // void Motion::set_RMS(uint16_t current)
@@ -307,7 +195,6 @@ bool Motion::isRunning()
 
 void Motion::translate(int distance, double alpha, int speed_robot, int accel_robot, bool blocking)
 {
-    ESP_LOGE(TAG, "Translate - d: %d, alpha: %f", distance, alpha);
     double A = M_DRIVE_STEPS_PER_TURN / (2*PI * WHEEL_RADIUS) * ODOM_CORRECTION_TRANSLATION;
     int dist_robot_step = (int) distance * A;
     int speed_robot_step = (int) speed_robot * A;
@@ -318,26 +205,17 @@ void Motion::translate(int distance, double alpha, int speed_robot, int accel_ro
     double c2 = - a - b;
     double c3 = + a - b;
     double c4 = + a + b;
-    //ESP_LOGI(TAG, "c1: %f, c2: %f, c3: %f, c4: %f", c1, c2, c3, c4);
-    ESP_LOGI(TAG, "Waiting before executing moves");
-    wait();
-    objective_pos = pos;
-    objective_pos.x += -distance*sin((alpha+pos.r)*PI/180);
-    objective_pos.y += distance*cos((alpha+pos.r)*PI/180);
+    ESP_LOGI(TAG, "c1: %f, c2: %f, c3: %f, c4: %f", c1, c2, c3, c4);
     execute_moves(c1, c2, c3, c4, dist_robot_step, speed_robot_step, accel_robot_step, blocking);
 }
 
 void Motion::rotate(double dtheta, int rotation_speed_robot, int rotation_accel_robot, bool blocking)
 {
-    ESP_LOGE(TAG, "Rotating - dtheta: %f", dtheta);
+    ESP_LOGI(TAG, "Rotating");
     double A = ROBOT_RADIUS * M_DRIVE_STEPS_PER_TURN / (360 * WHEEL_RADIUS) * ODOM_CORRECTION_ROTATION;
     int dist_motors_step = (int) (dtheta * A);
     int speed_motors_step = (int) (rotation_speed_robot * A);
     int accel_motors_step = (int) (rotation_accel_robot * A);
 
-    ESP_LOGI(TAG, "Waiting before executing moves");
-    wait();
-    objective_pos = pos;
-    objective_pos.r += dtheta;
     execute_moves(1, 1, 1, 1, dist_motors_step, speed_motors_step, accel_motors_step, blocking);
 }

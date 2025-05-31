@@ -33,7 +33,6 @@ public:
     void translate(int distance, double alpha, int speed_robot=MAX_SPEED_ROBOT, int accel_robot=MAX_ACCEL_ROBOT, bool blocking = true);
     void rotate(double dtheta, int rotation_speed_robot=MAX_SPEED_ROBOT, int rotation_accel_robot=MAX_ACCEL_ROBOT, bool blocking = true);
     void wait();
-    position_t relative_pos_futur(); // returns the position in 1sec if stop was issued now
 
 private:
     // TMC2209Stepper *M1_driver;
@@ -50,17 +49,13 @@ private:
     FastAccelStepper *M4_stepper = NULL;
 
     stepInstruction_t current_objective[4];
-    position_t pos; // position that was *last time the steps were reset*
-    bool moved = false; // if a move was made, meaning pos is not updated anymore.
 
     gpio_num_t en_pin;
 
     // void set_RMS(uint16_t current);
     // void set_microstep(uint16_t ms);
-    position_t objective_pos = {0, 0, 0};
-    void updatePos();
-    position_t getPosDelta(uint8_t type=0);
+    position_t position = {0, 0, 0};
     bool stopped = false;
-    bool isRunning();
-    SemaphoreHandle_t stepping_mutex;
+
+    void update_pos();
 };

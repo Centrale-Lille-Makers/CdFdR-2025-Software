@@ -57,6 +57,10 @@ void lift::enable_magnets()
 void lift::go_to(double h, bool wait)
 {
     ESP_LOGI(TAG, "Going to %fmm, %fsteps", h, h*steps_per_mm);
+    if (h < 0) {
+        ESP_LOGE(TAG, "Lift height negative: %f", h);
+        return;
+    }
     stepper->go_to(h*steps_per_mm, speed_stp, wait);
 }
 

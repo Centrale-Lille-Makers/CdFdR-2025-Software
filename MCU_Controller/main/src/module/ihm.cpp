@@ -40,7 +40,7 @@ void IHM::showProgressLive(int start)
 {
     showProgressStart = start;
     ESP_LOGI(TAG, "Starting Live progress");
-    xTaskCreate(showProgressTaskEntryPoint, "showProgress", 2048, this, 1, &showProgressTaskHandle);
+    xTaskCreate(showProgressTaskEntryPoint, "showProgress", 2048*4, this, 1, &showProgressTaskHandle);
 }
 
 void IHM::showProgressStop()
