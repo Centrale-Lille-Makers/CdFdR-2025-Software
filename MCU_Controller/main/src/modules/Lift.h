@@ -2,14 +2,15 @@
 
 #include <stdint.h>
 #include "driver/gpio.h"
-#include "libs/ledc_stepper.h"
-#include "module/ihm.h"
+#include "libs/LedcStepper.h"
+#include "IHM.h"
 #include "config.h"
-//#include "TMCStepper.h"
+// #include "TMCStepper.h"
 
-class lift {
+class Lift
+{
 public:
-    lift(uint8_t step_pin, uint8_t dir_pin, uint8_t en_pin, uint8_t suction_pin, uint8_t magnet_pin, uint8_t microsteps, char tag);
+    Lift(uint8_t step_pin, uint8_t dir_pin, uint8_t en_pin, uint8_t suction_pin, uint8_t magnet_pin, uint8_t microsteps, char tag);
     void enable_motor();
     void disable_suction();
     void enable_suction();
@@ -24,11 +25,11 @@ public:
     void stop_motor();
 
 private:
-    //TMC2209Stepper *driver;
-    ledc_stepper *stepper;
+    // TMC2209Stepper *driver;
+    LedcStepper *_stepper;
     gpio_num_t _suction_pin;
     gpio_num_t _magnet_pin;
-    int steps_per_mm;
-    int speed_stp;
-    char tag;
+    int _steps_per_mm;
+    int _speed_stp;
+    char _tag;
 };
